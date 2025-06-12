@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - AI Resume Analyzer{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Resume Summary -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    Resume Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>File:</strong> {{ filename }}
+                </div>
+                
+                {% if resume_data.name %}
+                <div class="mb-3">
+                    <strong>Name:</strong> {{ resume_data.name }}
+                </div>
+                {% endif %}
+                
+                {% if resume_data.email %}
+                <div class="mb-3">
+                    <strong>Email:</strong> 
+                    <a href="mailto:{{ resume_data.email }}">{{ resume_data.email }}</a>
+                </div>
+                {% endif %}
+                
+                {% if resume_data.phone %}
+                <div class="mb-3">
+                    <strong>Phone:</strong> {{ resume_data.phone }}
+                </div>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <strong>Word Count:</strong> {{ resume_data.word_count }}
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Skills Found:</strong> {{ resume_data.skill_count }}
+                </div>
+                
+                {% if resume_data.skills %}
+                <div class="mb-3">
+                    <strong>Extracted Skills:</strong>
+                    <div class="mt-2">
+                        {% for skill in resume_data.skills[:10] %}
+                        <span class="badge bg-secondary me-1 mb-1">{{ skill }}</span>
+                        {% endfor %}
+                        {% if resume_data.skills|length > 10 %}
+                        <span class="text-muted">+{{ resume_data.skills|length - 10 }} more</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if resume_data.education %}
+                <div class="mb-3">
+                    <strong>Education:</strong>
+                    <ul class="list-unstyled mt-2">
+                        {% for edu in resume_data.education %}
+                        <li><i class="fas fa-graduation-cap me-1"></i>{{ edu }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if resume_data.experience %}
+                <div class="mb-3">
+                    <strong>Experience:</strong>
+                    <ul class="list-unstyled mt-2">
+                        {% for exp in resume_data.experience %}
+                        <li><i class="fas fa-briefcase me-1"></i>{{ exp }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Job Matches -->
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>
+                <i class="fas fa-chart-bar me-2"></i>
+                Job Match Results
+            </h3>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-upload me-1"></i>
+                Analyze New Resume
+            </a>
+        </div>
+        
+        {% if job_matches %}
+        <div class="row">
+            {% for match in job_matches %}
+            <div class="col-12 mb-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="card-title mb-1">{{ match.job_title }}</h5>
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-building me-1"></i>{{ match.company }} • 
+                                    <i class="fas fa-map-marker-alt me-1"></i>{{ match.location }}
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <div class="mb-2">
+                                    <span class="badge bg-{% if match.similarity_score >= 70 %}success{% elif match.similarity_score >= 50 %}warning{% else %}danger{% endif %} fs-6">
+                                        {{ match.similarity_score }}% Match
+                                    </span>
+                                </div>
+                                <div class="text-muted small">{{ match.match_level }} Compatibility</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Salary -->
+                        {% if match.salary != 'Not specified' %}
+                        <div class="mb-3">
+                            <strong>Salary:</strong> 
+                            <span class="text-success">{{ match.salary }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Similarity Breakdown -->
+                        <div class="mb-3">
+                            <strong>Match Breakdown:</strong>
+                            <div class="mt-2">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">Semantic Similarity</small>
+                                        <div class="progress mb-2">
+                                            <div class="progress-bar" style="width: {{ match.semantic_similarity }}%">
+                                                {{ match.semantic_similarity }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="text-muted">Keyword Overlap</small>
+                                        <div class="progress mb-2">
+                                            <div class="progress-bar bg-info" style="width: {{ match.keyword_overlap }}%">
+                                                {{ match.keyword_overlap }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Matched Skills -->
+                        {% if match.matched_skills %}
+                        <div class="mb-3">
+                            <strong>Matched Skills:</strong>
+                            <div class="mt-2">
+                                {% for skill in match.matched_skills %}
+                                <span class="badge bg-success me-1 mb-1">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Feedback -->
+                        {% if match.feedback %}
+                        <div class="mb-3">
+                            <strong>Improvement Suggestions:</strong>
+                            <ul class="mt-2">
+                                {% for feedback in match.feedback %}
+                                <li class="mb-1">{{ feedback }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Action Button -->
+                        <div class="text-end">
+                            {% set match_class = 'success' if match.similarity_score >= 70 else 'warning' if match.similarity_score >= 50 else 'danger' %}
+                            <button class="btn btn-outline-{{ match_class }}" onclick="toggleDetails('{{ match.job_id }}')">
+                                <i class="fas fa-eye me-1"></i>
+                                View Job Details
+                            </button>
+                        </div>
+                        
+                        <!-- Collapsible Job Details -->
+                        <div class="collapse mt-3" id="details{{ match.job_id }}">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>Job Description:</h6>
+                                    <p class="small text-muted">{{ match.job_description if match.job_description else 'No description available' }}</p>
+                                    
+                                    <h6>Requirements:</h6>
+                                    <p class="small text-muted">{{ match.job_requirements if match.job_requirements else 'No requirements specified' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No job matches found. Please try uploading a different resume or select different jobs.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Overall Analysis Summary -->
+{% if job_matches %}
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Overall Analysis Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h4 class="text-primary">{{ job_matches|length }}</h4>
+                            <p class="text-muted mb-0">Jobs Analyzed</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            {% set avg_score = (job_matches | sum(attribute='similarity_score')) / job_matches|length %}
+                            <h4 class="text-{% if avg_score >= 70 %}success{% elif avg_score >= 50 %}warning{% else %}danger{% endif %}">
+                                {{ "%.1f"|format(avg_score) }}%
+                            </h4>
+                            <p class="text-muted mb-0">Average Match</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            {% set best_match = job_matches[0] %}
+                            <h4 class="text-success">{{ best_match.similarity_score }}%</h4>
+                            <p class="text-muted mb-0">Best Match</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-info">{{ resume_data.skill_count }}</h4>
+                        <p class="text-muted mb-0">Skills Identified</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleDetails(jobId) {
+    const detailsElement = document.getElementById('details' + jobId);
+    const bsCollapse = new bootstrap.Collapse(detailsElement, {
+        toggle: true
+    });
+}
+
+// Add smooth scrolling to results
+document.addEventListener('DOMContentLoaded', function() {
+    // Highlight best match
+    const cards = document.querySelectorAll('.card');
+    if (cards.length > 1) {
+        cards[1].classList.add('border-success');  // First job match card
+    }
+    
+    // Add tooltips to progress bars
+    const progressBars = document.querySelectorAll('.progress-bar');
+    progressBars.forEach(bar => {
+        bar.setAttribute('data-bs-toggle', 'tooltip');
+        bar.setAttribute('title', 'Click to view details');
+    });
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Resume - AI Resume Analyzer{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Header -->
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-upload text-primary me-3"></i>
+                AI Resume Analyzer
+            </h1>
+            <p class="lead text-muted">Upload your resume and get AI-powered job matching and improvement recommendations</p>
+        </div>
+
+        <!-- Upload Form -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-file-upload me-2"></i>
+                    Upload Your Resume
+                </h4>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('analyze_resume') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label for="resume" class="form-label">Select Resume File</label>
+                        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.txt" required>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Supported formats: PDF, TXT (Max size: 16MB)
+                        </div>
+                    </div>
+
+                    <!-- Job Selection -->
+                    <div class="mb-4">
+                        <label class="form-label">Select Jobs to Match Against</label>
+                        <div class="form-text mb-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Choose one or more jobs to see how well your resume matches
+                        </div>
+                        
+                        <div class="row">
+                            {% for job in jobs %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="jobs" value="{{ job.id }}" id="job{{ job.id }}">
+                                            <label class="form-check-label" for="job{{ job.id }}">
+                                                <h6 class="mb-1">{{ job.title }}</h6>
+                                                <p class="text-muted small mb-1">
+                                                    <i class="fas fa-building me-1"></i>{{ job.company }}
+                                                </p>
+                                                <p class="text-muted small mb-1">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>{{ job.location }}
+                                                </p>
+                                                <p class="text-success small mb-0">
+                                                    <i class="fas fa-dollar-sign me-1"></i>{{ job.salary }}
+                                                </p>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            <i class="fas fa-magic me-2"></i>
+                            Analyze Resume
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="row mt-5">
+            <div class="col-md-4 text-center">
+                <div class="card h-100 border-0">
+                    <div class="card-body">
+                        <i class="fas fa-brain fa-3x text-primary mb-3"></i>
+                        <h5>AI-Powered Analysis</h5>
+                        <p class="text-muted">Advanced NLP algorithms analyze your resume content and extract key information automatically.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="card h-100 border-0">
+                    <div class="card-body">
+                        <i class="fas fa-search fa-3x text-primary mb-3"></i>
+                        <h5>Smart Job Matching</h5>
+                        <p class="text-muted">Get precise compatibility scores based on semantic similarity and keyword analysis.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="card h-100 border-0">
+                    <div class="card-body">
+                        <i class="fas fa-lightbulb fa-3x text-primary mb-3"></i>
+                        <h5>Improvement Tips</h5>
+                        <p class="text-muted">Receive actionable feedback to optimize your resume for better job matches.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const fileInput = document.getElementById('resume');
+    const checkboxes = document.querySelectorAll('input[name="jobs"]');
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const selectedJobs = Array.from(checkboxes).some(cb => cb.checked);
+        
+        if (!selectedJobs) {
+            e.preventDefault();
+            alert('Please select at least one job to match against.');
+            return;
+        }
+        
+        if (!fileInput.files[0]) {
+            e.preventDefault();
+            alert('Please select a resume file to upload.');
+            return;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analyzing...';
+    });
+    
+    // File validation
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const maxSize = 16 * 1024 * 1024; // 16MB
+            if (file.size > maxSize) {
+                alert('File size too large. Please select a file smaller than 16MB.');
+                this.value = '';
+                return;
+            }
+            
+            const allowedTypes = ['application/pdf', 'text/plain'];
+            if (!allowedTypes.includes(file.type)) {
+                alert('Invalid file type. Please upload a PDF or TXT file.');
+                this.value = '';
+                return;
+            }
+        }
+    });
+    
+    // Select All / Deselect All functionality
+    const selectAllBtn = document.createElement('button');
+    selectAllBtn.type = 'button';
+    selectAllBtn.className = 'btn btn-outline-secondary btn-sm mb-3';
+    selectAllBtn.innerHTML = '<i class="fas fa-check-square me-1"></i>Select All';
+    
+    const jobsContainer = document.querySelector('.row').parentNode;
+    jobsContainer.insertBefore(selectAllBtn, document.querySelector('.row'));
+    
+    let allSelected = false;
+    selectAllBtn.addEventListener('click', function() {
+        allSelected = !allSelected;
+        checkboxes.forEach(cb => cb.checked = allSelected);
+        this.innerHTML = allSelected ? 
+            '<i class="fas fa-square me-1"></i>Deselect All' : 
+            '<i class="fas fa-check-square me-1"></i>Select All';
+    });
+});
+</script>
+{% endblock %}
